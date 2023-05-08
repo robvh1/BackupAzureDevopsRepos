@@ -117,7 +117,19 @@ $backupSizeUncompressed= "{0:N2}" -f ((Get-ChildItem -path $backupDirectory -rec
 
 Set-Location $backupDirectory
 Write-Host "=== Compress folder"
+# Hidden files workaround (make List and unhide files, compress and hide them again)
+$hiddenFilesList = Get-ChildItem -Path . -Recurse -Force | Where-Object {$_.Attributes -match "Hidden"}
+
+foreach ($file in $hiddenFilesList) {
+    (get-item $file -force).Attributes -= 'Hidden'
+}
+
 Compress-Archive -Path . -DestinationPath "$backupFolder.zip" -CompressionLevel Optimal
+
+foreach ($file in $hiddenFilesList) {
+    (get-item $file -force).Attributes += 'Hidden'
+}
+
 $backupSizeCompressed="{0:N2}" -f ((Get-ChildItem $backupFolder.zip | Measure-Object -property length -sum ).sum /1MB) + "MB"
 Write-Host "=== Remove raw data in folder"
 Get-ChildItem -Directory | Remove-Item -Force -Recurse
